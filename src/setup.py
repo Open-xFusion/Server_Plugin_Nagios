@@ -562,11 +562,7 @@ class InitUserCfg(object):
             <ipaddress></ipaddress>
             <devicetype></devicetype>
             <vendorid></vendorid>
-            <port>161</port>
-            <user></user>
-            <pass></pass>
-            <authprotocol></authprotocol>
-            <privprotocol></privprotocol>
+            <port></port>
         </device>
         <!--设备数据采集协议：
             1、采集数据的SNMP版本为V3，则告警上报支持V1/V2/V3；
@@ -575,14 +571,24 @@ class InitUserCfg(object):
         -->
         <collect>
             <snmpversion></snmpversion>
+            <user></user>
+            <pass></pass>
+            <privpass></privpass>
+            <authprotocol></authprotocol>
+            <privprotocol></privprotocol>
             <community></community>            
         </collect>
         
         <!--设备告警上报的协议信息：
             1、E9000告警上报只支持SNMP V1/V2版本。-->
         <alarm>
-            <trapsnmpversion></trapsnmpversion>
-            <trapcommunity></trapcommunity>
+            <snmpversion></snmpversion>
+            <user></user>
+            <pass></pass>
+            <privpass></privpass>
+            <authprotocol></authprotocol>
+            <privprotocol></privprotocol>
+            <community></community>
         </alarm>
     </host>
     
@@ -1064,10 +1070,10 @@ def install():
         
         os.system(
             "chmod  600 " + targetPath().nagios_bin() + os.path.sep +
-            "XFUSION_server" + os.path.sep + "constInfo.py")
+            "XFUSION_server" + os.path.sep + "const_info.py")
         os.system(
             "chmod  600 " + targetPath().nagios_bin() + os.path.sep +
-            "XFUSION_server" + os.path.sep + "dataInfo.py")
+            "XFUSION_server" + os.path.sep + "data_info.py")
         if CKmkVersion.getckmkVersion() == '1_4' or CKmkVersion.getckmkVersion() == '1_5':
             _currenPath = os.getcwd()
             copyusrfilecmd = "cp  '%s'/usrFile.cfg '%s'" % (_currenPath,

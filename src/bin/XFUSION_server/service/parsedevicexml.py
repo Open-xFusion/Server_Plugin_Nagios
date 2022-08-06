@@ -48,28 +48,6 @@ class ParseDeviceXml:
         return True
 
     @classmethod
-    def __parseFileNode(cls, node, files):
-
-        elements = Common.getChild(node)
-        if elements is None:
-            cls._logger.error(
-                "parser file node: %s node has no child node." % node.tag)
-            return False
-
-        for element in elements:
-
-            if "file" != element.tag:
-                cls._logger.error(
-                    "parser file node: element tag is not file.")
-                return False
-
-            file = File()
-            file.setType(element.attrib.get("type"))
-            file.setName(element.text)
-            files.append(file)
-        return True
-
-    @classmethod
     def parseDeviceConfig(cls, mode, configPath, device):
         if not os.path.exists(configPath):
             cls._logger.error("parse device config: file is not exist")
@@ -95,6 +73,28 @@ class ParseDeviceXml:
         device.setComponents(components)
 
         return NAGIOS_ERROR_SUCCESS
+
+    @classmethod
+    def __parseFileNode(cls, node, files):
+
+        elements = Common.getChild(node)
+        if elements is None:
+            cls._logger.error(
+                "parser file node: %s node has no child node." % node.tag)
+            return False
+
+        for element in elements:
+
+            if "file" != element.tag:
+                cls._logger.error(
+                    "parser file node: element tag is not file.")
+                return False
+
+            file = File()
+            file.setType(element.attrib.get("type"))
+            file.setName(element.text)
+            files.append(file)
+        return True
 
     @classmethod
     def __parseComponentNode(cls, mode, node, component):

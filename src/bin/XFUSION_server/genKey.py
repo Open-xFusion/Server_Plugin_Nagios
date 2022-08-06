@@ -4,8 +4,8 @@ import ConfigParser
 import getpass
 import os
 import sys
-import constInfo
-import dataInfo
+import const_info
+import data_info
 import commands
 
 '''
@@ -39,21 +39,21 @@ def readKey():
         kfilepath = find_nagiosdir() + os.path.sep + 'etc' + os.path.sep \
                     + 'XFUSION_server' + os.path.sep \
                     + 'configInfo.cfg'
-        file = open(kfilepath, constInfo.FILE_R)
+        file = open(kfilepath, const_info.FILE_R)
         key = file.readline()
     
     except IOError, err:
-        raise FileExcept(dataInfo.WRITE_FILE_ERROR + str(err))
+        raise FileExcept(data_info.WRITE_FILE_ERROR + str(err))
     except Exception, err:
         raise FileExcept(
-            dataInfo.WRITE_FILE_UNKNOWN + str(err))
+            data_info.WRITE_FILE_UNKNOWN + str(err))
     finally:
         if file is not None:
             file.close()
     if key is not None:
         return key
     else:
-        return constInfo.DATA_CONS
+        return const_info.DATA_CONS
 
 
 '''
@@ -102,31 +102,31 @@ def genRootKeyStr():
     parser = ConfigParser.ConfigParser()
     configdata = {}
     try:
-        file = open(configfilepath, constInfo.FILE_R)
+        file = open(configfilepath, const_info.FILE_R)
         parser.readfp(file)
         for section in parser.sections():
             for (key, value) in parser.items(section):
                 configdata[key] = value
-        rootkey = configdata.get(constInfo.NAGIOS_CONTANT3)
+        rootkey = configdata.get(const_info.NAGIOS_CONTANT3)
 
     except IOError, err:
         file.close()
-        raise FileExcept(dataInfo.OPEN_FILE_ERROR + '\n' + str(err))
+        raise FileExcept(data_info.OPEN_FILE_ERROR + '\n' + str(err))
     except FileExcept, err:
         file.close()
         raise
     except Exception, err:
         file.close()
-        raise FileExcept(dataInfo.INITIAL_FILE + '\n' + str(err))
+        raise FileExcept(data_info.INITIAL_FILE + '\n' + str(err))
     finally:
         if file is not None:
             file.close()
     try:
         if rootkey is not None:
-            key = dataInfo.CONSTANT1 + rootkey + constInfo.CONSTANT2
+            key = data_info.CONSTANT1 + rootkey + const_info.CONSTANT2
             return key
     except Exception, err:
-        raise FileExcept(dataInfo.ROOTKEY_UNKNOWN + '\n' + str(err))
+        raise FileExcept(data_info.ROOTKEY_UNKNOWN + '\n' + str(err))
 
 
 '''
@@ -138,7 +138,7 @@ def genRootKeyStr():
 
 def encryptPwd():
     if len(sys.argv) == 2 and "encryptPwd" == sys.argv[1]:
-        pkey = getpass.getpass(dataInfo.INPUT_PWD)
+        pkey = getpass.getpass(data_info.INPUT_PWD)
         
         try:
             if pkey is not None:
@@ -148,7 +148,7 @@ def encryptPwd():
                 print encryptKey(pkey, k)
                 return
         except FileExcept:
-            print dataInfo.PWD_UNKNOWN
+            print data_info.PWD_UNKNOWN
 
 
 encryptPwd()

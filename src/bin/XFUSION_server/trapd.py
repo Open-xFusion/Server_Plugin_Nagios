@@ -10,8 +10,8 @@
 import os
 import sys
 import re
-import constInfo
-import dataInfo
+import const_info
+import data_info
 import time
 import thread
 import threading
@@ -31,14 +31,13 @@ from pysnmp.entity import engine, config
 from pysnmp.entity.rfc3413 import ntfrcv
 from pysnmp.proto.api import v2c
 from config import VERSTION_STR
+from eventhandler import HandlerFactory
+import eventhandler as const
 
 sys.path.append(os.path.dirname(os.path.dirname(
     os.path.normpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))))
                 + os.path.sep + 'libexec' + os.path.sep + 'XFUSION_server'
                 + os.path.sep + 'eventhandler')
-
-from eventhandler import HandlerFactory
-import eventhandler as const
 
 NAGIOS_DIR_KEY = 'nagios_dir'
 NAGIOS_CMD_FILE_KEY = 'nagios_cmd_file'
@@ -87,6 +86,7 @@ HOST_CFG_KEY_IP = 'ipaddress'
 HOST_CFG_KEY_NAME = 'name'
 HOST_CFG_KEY_USER = 'user'
 HOST_CFG_KEY_PASS = 'pass'
+HOST_CFG_KEY_PRIVPASS = 'privpass'
 HOST_CFG_KEY_AUTHPROTOCOL = 'authprotocol'
 HOST_CFG_KEY_PRIVPROTOCOL = 'privprotocol'
 HOST_CFG_KEY_COMMUNITY = 'community'
@@ -455,6 +455,8 @@ class TrapReceiver(object):
                         self._configdata.Hostdata[agentip][HOST_CFG_KEY_USER])
                     password = str(
                         self._configdata.Hostdata[agentip][HOST_CFG_KEY_PASS])
+                    privPassword = str(
+                        self._configdata.Hostdata[agentip][HOST_CFG_KEY_PRIVPASS])
                     enginid = str(self._configdata.Hostdata[agentip][
                                       HOST_CFG_KEY_ENGINID])
 
@@ -470,28 +472,28 @@ class TrapReceiver(object):
                         config.addV3User(
                             snmpEngine, username,
                             config.usmHMACMD5AuthProtocol, password,
-                            config.usmDESPrivProtocol, password,
+                            config.usmDESPrivProtocol, privPassword,
                             contextEngineId=strEnginid
                         )
                     elif authProtocol == 'MD5' and privProtocol == "AES":
                         config.addV3User(
                             snmpEngine, username,
                             config.usmHMACMD5AuthProtocol, password,
-                            config.usmAesCfb128Protocol, password,
+                            config.usmAesCfb128Protocol, privPassword,
                             contextEngineId=strEnginid
                         )
                     elif authProtocol == 'SHA' and privProtocol == "DES":
                         config.addV3User(
                             snmpEngine, username,
                             config.usmHMACSHAAuthProtocol, password,
-                            config.usmDESPrivProtocol, password,
+                            config.usmDESPrivProtocol, privPassword,
                             contextEngineId=strEnginid
                         )
                     elif authProtocol == 'SHA' and privProtocol == "AES":
                         config.addV3User(
                             snmpEngine, username,
                             config.usmHMACSHAAuthProtocol, password,
-                            config.usmAesCfb128Protocol, password,
+                            config.usmAesCfb128Protocol, privPassword,
                             contextEngineId=strEnginid
                         )
                 else:
@@ -718,6 +720,10 @@ class ConfigData(object):
                             self.dencrypt(str(
                                 node.getElementsByTagName(HOST_CFG_KEY_PASS)[0]
                                     .childNodes[0].nodeValue.strip()))
+                        hostdic[HOST_CFG_KEY_PRIVPASS] = \
+                            self.dencrypt(str(
+                                node.getElementsByTagName(HOST_CFG_KEY_PRIVPASS)[0]
+                                    .childNodes[0].nodeValue.strip()))
                         hostdic[HOST_CFG_KEY_TRAPSNMPVERSION] = \
                             str(node.getElementsByTagName(
                                 HOST_CFG_KEY_TRAPSNMPVERSION)[0]
@@ -820,7 +826,7 @@ class ConfigData(object):
         if key is not None:
             return key
         else:
-            return constInfo.DATA_CONS
+            return const_info.DATA_CONS
 
     def genRootKeyStr(self):
         configfilepath = self._nagiosdir + '/etc' + os.path.sep \
@@ -855,7 +861,7 @@ class ConfigData(object):
                 file.close()
 
         if rootkey is not None:
-            key = dataInfo.CONSTANT1 + rootkey + constInfo.CONSTANT2
+            key = data_info.CONSTANT1 + rootkey + const_info.CONSTANT2
             return key
         else:
             return ""
@@ -1215,7 +1221,7 @@ class SNMPCorresponder(object):
                 errorIndication, errorStatus, errorIndex, varBinds = \
                     cmdgen.CommandGenerator().getCmd(cmdgen.UsmUserData(
                         hostdic[HOST_CFG_KEY_USER], hostdic[HOST_CFG_KEY_PASS],
-                        hostdic[HOST_CFG_KEY_PASS], authProtocol,
+                        hostdic[HOST_CFG_KEY_PRIVPASS], authProtocol,
                         privProtocol), cmdgen.UdpTransportTarget(
                         (ipaddress, hostdic[HOST_CFG_KEY_PORT])), typeoid)
             else:

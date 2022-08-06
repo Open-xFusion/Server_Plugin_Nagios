@@ -2,8 +2,8 @@
 
 import os
 import ConfigParser
-import constInfo
-import dataInfo
+import const_info
+import data_info
 
 from util.common import Common
 from model.host import Host
@@ -103,6 +103,8 @@ class ParseHostXml:
                 host.setUserName(element.text.strip())
             elif "pass" == element.tag:
                 host.setPassword(cls.__dencrypt(element.text))
+            elif "privpass" == element.tag:
+                host.setPrivPassword(cls.__dencrypt(element.text))
             elif "authprotocol" == element.tag:
                 host.setAuthProtocol(element.text.strip())
             elif "privprotocol" == element.tag:
@@ -180,7 +182,7 @@ class ParseHostXml:
         if key is not None:
             return key
         else:
-            return constInfo.DATA_CONS
+            return const_info.DATA_CONS
 
     @classmethod
     def __genRootKeyStr(cls):
@@ -205,7 +207,7 @@ class ParseHostXml:
                 file.close()
 
         if rootkey is not None:
-            key = dataInfo.CONSTANT1 + rootkey + constInfo.CONSTANT2
+            key = data_info.CONSTANT1 + rootkey + const_info.CONSTANT2
             return key
         else:
             return ""

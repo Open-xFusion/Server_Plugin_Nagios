@@ -3,9 +3,10 @@
 import os
 import sys
 
-sys.path.append("..")
 from base.logger import Logger
-from constant.constant import *
+from constant.constant import NUMBER_ZERO, NUMBER_ONE, NUMBER_TWO, NUMBER_THREE
+
+sys.path.append("..")
 
 
 # 参数校验类

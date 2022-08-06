@@ -42,7 +42,7 @@ class Channel:
         if "v3" == host.getCollectVersion().lower():
             self._userData = cmdgen.UsmUserData(host.getUserName(),
                                                 host.getPassword(),
-                                                host.getPassword(),
+                                                host.getPrivPassword(),
                                                 Authentication.get(host.getAuthProtocol()),
                                                 Encryption.get(host.getEncryptionProtocol()))
 
@@ -50,6 +50,14 @@ class Channel:
             self._userData = cmdgen.CommunityData(host.getCollectCommunity())
         else:
             self._userData = None
+
+    @staticmethod
+    def filter(name, *oid):
+        for item in oid:
+            if name.startswith(item + "."):
+                return True
+
+        return False
 
     def getCmd(self, *oid):
 
@@ -111,16 +119,9 @@ class Channel:
         data = {}
         for var_bind_table_row in varBindTable:
             for name, value in var_bind_table_row:
-                if not self.__filter(name.prettyPrint(), *oid):
+                if not Channel.filter(name.prettyPrint(), *oid):
                     continue
                 data[name.prettyPrint()] = value.prettyPrint()
 
         result.setResult(NAGIOS_ERROR_SUCCESS, "", data)
         return result
-
-    def __filter(self, name, *oid):
-        for item in oid:
-            if name.startswith(item + "."):
-                return True
-
-        return False

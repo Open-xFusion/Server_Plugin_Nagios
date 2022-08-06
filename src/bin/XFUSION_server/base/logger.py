@@ -40,12 +40,12 @@ class Logger:
     def init(self, loggerConfig):
 
         self._logger.setLevel(LEVEL.get(loggerConfig.getLoggerLevel()))
-        format = logging.Formatter(
+        log_format = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
         # 配置命令行日志־
         streamHandler = logging.StreamHandler()
-        streamHandler.setFormatter(format)
+        streamHandler.setFormatter(log_format)
         streamHandler.setLevel(LEVEL.get(loggerConfig.getLoggerLevel()))
 
         # 配置文件日志
@@ -57,7 +57,7 @@ class Logger:
         fileHandler = logging.handlers.RotatingFileHandler(logPath,
                                                            loggerConfig.getLoggerSize(),
                                                            loggerConfig.getLoggerIndex())
-        fileHandler.setFormatter(format)
+        fileHandler.setFormatter(log_format)
         fileHandler.setLevel(LEVEL.get(loggerConfig.getLoggerLevel()))
 
         self._logger.addHandler(streamHandler)

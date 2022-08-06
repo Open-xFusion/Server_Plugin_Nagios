@@ -14,6 +14,30 @@ from model.result import CollectResult, ComponentResult
 from constant import constant
 
 
+class DeviceModelExcept(Exception):
+    """
+    " 获取设备型号失败异常
+    " handle: 处理获取设备型号异常信息类,
+    """
+    pass
+
+
+class DeviceConfigExcept(Exception):
+    """
+    " 获取设备配置文件失败异常
+    " handle: 处理获取设备配置文件异常信息类,
+    """
+    pass
+
+
+class CommonConfigPathExcept(Exception):
+    """
+    " 获取配置文件失败异常
+    " handle: 处理获取配置文件异常信息类,
+    """
+    pass
+
+
 class CollectService:
     _logger = Logger.getInstance()
     _configs = []
@@ -27,19 +51,37 @@ class CollectService:
             self._targetPath = data[1]
         elif constant.COLLECT_MODE_CMD_FILE == mode and constant.NUMBER_ONE == len(
                 data):
-            self._hostPath = data[0] if \
-                data[0][len(data[0]) - 1:] != os.path.sep else \
-                data[0][0:len(data[0]) - 1]
+            self._hostPath = data[0] if data[0][len(data[0]) - 1:] != os.path.sep else data[0][0:len(data[0]) - 1]
         elif constant.COLLECT_MODE_CMD_FILE == mode and constant.NUMBER_THREE == len(
                 data):
             self._hostPath = data[0]
-            self._targetPath = data[2] if \
-                data[2][len(data[2]) - 1:] != os.path.sep else \
-                data[2][0:len(data[2]) - 1]
+            self._targetPath = data[2] if data[2][len(data[2]) - 1:] != os.path.sep else data[2][0:len(data[2]) - 1]
 
         if not ParseDeviceXml.parseDeviceXml(Common.getDeviceConfigPath(),
                                              self._configs):
             self._logger.error("service : parse device xml file failed")
+
+    @staticmethod
+    def getCommonConfigPath(config):
+        for file in config.getFile():
+            if "common" == file.getType():
+                return Common.getDeviceModelPath() + os.path.sep + file.getName()
+        raise CommonConfigPathExcept
+
+    # 获取host设备的型号
+    @staticmethod
+    def getDeiveModel(channel, oid):
+        result = channel.getCmd(oid)
+        if result.getCode() != constant.NAGIOS_ERROR_SUCCESS:
+            raise DeviceModelExcept
+        return result.getData()[oid]
+
+    @staticmethod
+    def getConfigPath(config, deviceModel):
+        for file in config.getFile():
+            if deviceModel == file.getType() or deviceModel in file.getReplace():
+                return Common.getDeviceModelPath() + os.path.sep + file.getName()
+        return CollectService.getCommonConfigPath(config)
 
     def start(self):
         hosts = []
@@ -55,11 +97,12 @@ class CollectService:
             deviceInfo = Device()
             errCode = self.__getDeviceInfo(channel, host, deviceInfo)
             if errCode != constant.NAGIOS_ERROR_SUCCESS:
-                self._logger.error(
-                    "service : get device info failed. host name:%s" % host.getHostName())
-                collectResult.setService({service: errCode for service in (
-                    host.getCollectBasic() if (
-                            constant.COLLECT_MODE_CMD_PLUGIN == self._mode) else host.getCollectExtension())})
+                self._logger.error("service : get device info failed. host name:%s" % host.getHostName())
+                if self._mode == constant.COLLECT_MODE_CMD_PLUGIN:
+                    service_map = {service: errCode for service in host.getCollectBasic()}
+                else:
+                    service_map = {service: errCode for service in host.getCollectExtension()}
+                collectResult.setService(service_map)
             
             else:
                 collectResult.setService(
@@ -68,9 +111,10 @@ class CollectService:
         return 0
 
     def collect(self, channel, host, deviceInfo):
-        
-        collectComponents = host.getCollectBasic() if (
-                constant.COLLECT_MODE_CMD_PLUGIN == self._mode) else host.getCollectExtension()
+        if self._mode == constant.COLLECT_MODE_CMD_PLUGIN:
+            collectComponents = host.getCollectBasic()
+        else:
+            collectComponents = host.getCollectExtension()
 
         serviceResult = {}
         for collectComponent in collectComponents:
@@ -97,8 +141,7 @@ class CollectService:
     # 采集node节点中的OID信息
     def __collectNode(self, channel, deviceComponent):
         
-        nodeOids = [deviceNode.getOid() for deviceNode in
-                    deviceComponent.getNode()]
+        nodeOids = [deviceNode.getOid() for deviceNode in deviceComponent.getNode()]
 
         if "get" == deviceComponent.getMethod():
             return channel.getCmd(*tuple(nodeOids))
@@ -112,50 +155,32 @@ class CollectService:
 
     # 获取host设备采集信息
     def __getDeviceInfo(self, channel, host, device):
-        config = self.__getDeviceConfig(host)
-        if config is None:
+        try:
+            config = self.__getDeviceConfig(host)
+            deviceModel = CollectService.getDeiveModel(channel, config.getOid())
+            deviceConfigPath = CollectService.getConfigPath(config, deviceModel)
+            errCode = ParseDeviceXml.parseDeviceConfig(self._mode, deviceConfigPath, device)
+            if errCode != constant.NAGIOS_ERROR_SUCCESS:
+                self._logger.error("service: parse device config failed. "
+                                   "host name:%s, device model:%s."
+                                   % (host.getHostName(), deviceModel))
+                return errCode
+            return constant.NAGIOS_ERROR_SUCCESS
+        except DeviceConfigExcept:
             self._logger.error(
                 "service: get device config failed. device type:%s." % (
                     host.getDeviceType()))
             return constant.NAGIOS_ERROR_DEVICE_XML_INVALID
-
-        deviceModel = self.__getDeiveModel(channel, config.getOid())
-        if deviceModel is None:
+        except DeviceModelExcept:
             self._logger.error("service: get device model failed. "
                                "host name:%s, device type oid:%s."
                                % (host.getHostName(), config.getOid()))
             return constant.NAGIOS_ERROR_DEVICE_XML_INVALID
-        
-        deviceConfigPath = self.__getConfigPath(config, deviceModel)
-        errCode = ParseDeviceXml.parseDeviceConfig(self._mode,
-                                                   deviceConfigPath, device)
-        if errCode != constant.NAGIOS_ERROR_SUCCESS:
+        except CommonConfigPathExcept:
             self._logger.error("service: parse device config failed. "
                                "host name:%s, device model:%s."
                                % (host.getHostName(), deviceModel))
-            return errCode
-
-        return constant.NAGIOS_ERROR_SUCCESS
-
-    def __getConfigPath(self, config, deviceModel):
-        for file in config.getFile():
-            if deviceModel == file.getType() or deviceModel in file.getReplace():
-                return Common.getDeviceModelPath() + os.path.sep + file.getName()
-
-        return self.__getCommonConfigPath(config)
-
-    def __getCommonConfigPath(self, config):
-        for file in config.getFile():
-            if "common" == file.getType():
-                return Common.getDeviceModelPath() + os.path.sep + file.getName()
-        return None
-
-    # 获取host设备的型号
-    def __getDeiveModel(self, channel, oid):
-        result = channel.getCmd(oid)
-        if result.getCode() != constant.NAGIOS_ERROR_SUCCESS:
-            return None
-        return result.getData()[oid]
+            return constant.NAGIOS_ERROR_DEVICE_CONFIG_NOTEXIST
 
     # 获取host设备的型号OID
     def __getDeviceConfig(self, host):
@@ -163,4 +188,4 @@ class CollectService:
             if host.getDeviceType() == config.getDeviceType() \
                     and host.getVendorId() == config.getVendorId():
                 return config
-        return None
+        raise DeviceConfigExcept
