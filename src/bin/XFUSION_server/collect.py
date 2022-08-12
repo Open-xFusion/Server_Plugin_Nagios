@@ -1,18 +1,17 @@
 # encoding:utf-8
 
-import sys
 import os
-import time
+import sys
+from threading import Timer
 
+from base.logger import Logger
+from config import VERSTION_STR
 from constant.constant import COLLECT_MODE_CMD_PLUGIN, \
     COLLECT_MODE_CMD_TOTAL, COLLECT_MODE_CMD_FILE
-from config import VERSTION_STR
-from base.logger import Logger
 from model.plugin import LoggerConfig
 from service.collectservice import CollectService
-from util.common import Common
 from util.check import Check
-from threading import Timer
+from util.common import Common
 
 
 def loggerConfig(node, loggerData):

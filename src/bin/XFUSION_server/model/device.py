@@ -45,8 +45,8 @@ class File:
     def getType(self):
         return self._type
 
-    def setType(self, type):
-        self._type = type
+    def setType(self, file_type):
+        self._type = file_type
 
     def getName(self):
         return self._name
@@ -151,8 +151,8 @@ class Node:
     def getRange(self):
         return self._range
 
-    def setRange(self, range):
-        self._range = range
+    def setRange(self, node_range):
+        self._range = node_range
 
     def getReplace(self):
         return self._replace

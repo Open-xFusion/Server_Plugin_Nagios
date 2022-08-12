@@ -4,7 +4,7 @@ from xml.etree import ElementTree
 from base.logger import Logger
 from constant.constant import NAGIOS_INFORMATION_UNKNOWN, NUMBER_ONE, \
     NUMBER_ZERO, NAGIOS_ERROR_SUCCESS, NAGIOS_STATUS_UNKNOWN, \
-    NAGIOS_INFORMATION_SEP, COLLECT_MODE_CMD_PLUGIN
+    NAGIOS_INFORMATION_SEP, COLLECT_MODE_CMD_PLUGIN, NAGIOS_STATUS_NORMAL
 from util.common import Common
 
 
@@ -56,6 +56,29 @@ class ProcessService:
 
             # E9000暂不支持
 
+    # 采集结果转成xml文件
+    @classmethod
+    def extensionProcess(cls, targetPath, collectResult):
+        # XML根节点
+        root = ElementTree.Element(collectResult.getHostName())
+        root.set("ip", collectResult.getIpAddress())
+
+        for service in collectResult.getService():
+
+            module = ElementTree.SubElement(root, service)
+            componentResult = collectResult.getService()[service]
+            if componentResult is None or isinstance(componentResult, int):
+                module.text = NAGIOS_INFORMATION_UNKNOWN
+            else:
+                for item in componentResult:
+                    cls.__detailProcess(module, item.getComponent(),
+                                        item.getResult())
+
+        Common.indent(root)
+        tree = ElementTree.ElementTree(root)
+        tree.write(Common.getFilePath(targetPath, collectResult.getHostName(),
+                                      collectResult.getIpAddress()), "utf-8")
+
     @classmethod
     def __statusProcess(cls, component, result):
         if result.getCode() != NAGIOS_ERROR_SUCCESS:
@@ -71,20 +94,20 @@ class ProcessService:
             cls._logger.error(
                 "status process: method is not get" % component.getMethod())
             return NAGIOS_STATUS_UNKNOWN
+        return NAGIOS_STATUS_NORMAL
 
     @classmethod
     def __informationProcess(cls, component, result):
         if result.getCode() != NAGIOS_ERROR_SUCCESS:
-            return str({node.getName(): result.getDetail() for node in
-                        component.getNode()})
+            return str({node.getName(): result.getDetail() for node in component.getNode()})
 
         if "get" == component.getMethod():
             message = {}
             for node in component.getNode():
-                message[node.getName()] = node.getReplace()[
-                    result.getData()[node.getOid()]] \
-                    if (len(node.getReplace()) != 0) \
-                    else result.getData()[node.getOid()]
+                if len(node.getReplace()) != 0:
+                    message[node.getName()] = node.getReplace()[result.getData()[node.getOid()]]
+                else:
+                    message[node.getName()] = result.getData()[node.getOid()]
 
             return str(message).replace("{", "").replace("}", "").replace(" ",
                                                                           "").replace(
@@ -95,10 +118,14 @@ class ProcessService:
             nodeName = []
             validInstance = []
             for node in component.getNode():
-                value = {item[0].replace(node.getOid(), node.getName()): item[
-                    1] if item[1] not in node.getReplace() else node.getReplace()[
-                    item[1]] for item in result.getData().items() if
-                         item[0].startswith(node.getOid() + ".")}
+                value = {}
+                for item in result.getData().items():
+                    if not item[0].startswith(node.getOid() + "."):
+                        continue
+                    if item[1] not in node.getReplace():
+                        value[item[0].replace(node.getOid(), node.getName())] = item[1]
+                    else:
+                        value[item[0].replace(node.getOid(), node.getName())] = node.getReplace()[item[1]]
                 if NUMBER_ZERO == len(value):
                     cls._logger.error(
                         "process information: the result of %s has not include in %s"
@@ -107,8 +134,11 @@ class ProcessService:
 
                 nodeName.append(node.getName())
                 if "presence" == component.getShow():
-                    msg = str(len({item[0]: item[1] for item in value.items()
-                                   if (item[1] == "presence") or (item[1] != "absence")}))
+                    len_map = {}
+                    for item in value.items():
+                        if item[1] == "presence" or item[1] != "absence":
+                            len_map[item[0]] = item[1]
+                    msg = str(len(len_map))
                     message[node.getName()] = "%s/%s" % (msg, str(len(value)))
                 if node.getValue() == "empty":
                     for item in value.items():
@@ -121,19 +151,20 @@ class ProcessService:
                             continue
                         validInstance.append(instance)
                 else:
-                    message.update(
-                        {item[0]: item[1] for item in value.items() if
-                         cls.__instanceToInt(item[0].replace(node.getName(),
-                                                             '')) in validInstance})
+                    for item in value.items():
+                        if cls.__instanceToInt(item[0].replace(node.getName(), '')) in validInstance:
+                            message.update({item[0]: item[1]})
 
             if "empty" == component.getShow():
-                message = [str(name + "." + str(instance) + ":" + message[
-                    name + "." + str(instance)]) for instance in
-                           sorted(validInstance) for name in nodeName]
+                message = [str(name + "." + str(instance) + ":" + message.get(name + "." + str(instance)))
+                           for instance in sorted(validInstance)
+                           for name in nodeName]
 
-            return (str(message).replace("{", "").replace("}", "").
-                    replace(",", "/  ") if isinstance(message, dict) else
-                    str(message).replace("[", "").replace("]", "")).replace("'", '').replace(",", "/  ")
+            if isinstance(message, dict):
+                res = str(message).replace("{", "").replace("}", "").replace(",", "/  ")
+            else:
+                res = str(message).replace("[", "").replace("]", "")
+            return res.replace("'", '').replace(",", "/  ")
 
         else:
             cls._logger.error(
@@ -154,49 +185,30 @@ class ProcessService:
                     ".", ""))
             return ""
         return value
-    
-    # 采集结果转成xml文件
-    @classmethod
-    def extensionProcess(cls, targetPath, collectResult):
-        # XML根节点
-        root = ElementTree.Element(collectResult.getHostName())
-        root.set("ip", collectResult.getIpAddress())
-
-        for service in collectResult.getService():
-            
-            module = ElementTree.SubElement(root, service)
-            componentResult = collectResult.getService()[service]
-            if componentResult is None or isinstance(componentResult, int):
-                module.text = NAGIOS_INFORMATION_UNKNOWN
-            else:
-                for item in componentResult:
-                    cls.__detailProcess(module, item.getComponent(),
-                                        item.getResult())
-
-        Common.indent(root)
-        tree = ElementTree.ElementTree(root)
-        tree.write(Common.getFilePath(targetPath, collectResult.getHostName(),
-                                      collectResult.getIpAddress()), "utf-8")
 
     @classmethod
     def __detailProcess(cls, module, component, result):
         if "get" == component.getMethod():
             for node in component.getNode():
                 element = ElementTree.SubElement(module, node.getName())
-                element.text = node.getReplace()[
-                    result.getData()[node.getOid()]] if (
-                        len(node.getReplace()) != 0) else result.getData()[
-                    node.getOid()]
+                if len(node.getReplace()) != 0:
+                    element.text = node.getReplace()[result.getData()[node.getOid()]]
+                else:
+                    element.text = result.getData()[node.getOid()]
 
         elif "bulk" == component.getMethod():
             instances = []
             names = []
             message = {}
             for node in component.getNode():
-                value = {item[0].replace(node.getOid(), node.getName()): item[
-                    1] if item[1] not in node.getReplace() else node.getReplace()[item[1]]
-                         for item in result.getData().items() if
-                         item[0].startswith(node.getOid() + ".")}
+                value = {}
+                for item in result.getData().items():
+                    if not item[0].startswith(node.getOid() + "."):
+                        continue
+                    if item[1] not in node.getReplace():
+                        value = {item[0].replace(node.getOid(), node.getName()): item[1]}
+                    else:
+                        value = {item[0].replace(node.getOid(), node.getName()): node.getReplace()[item[1]]}
 
                 if NUMBER_ZERO == len(value):
                     cls._logger.error(
@@ -205,8 +217,7 @@ class ProcessService:
                     continue
 
                 if NUMBER_ZERO == len(instances):
-                    instances = [item[0].replace(node.getName(), '') for item
-                                 in value.items()]
+                    instances = [item[0].replace(node.getName(), '') for item in value.items()]
 
                 names.append(node.getName())
                 message.update(value)

@@ -5,8 +5,8 @@ import sys
 import getpass
 import ConfigParser
 import re
-import constInfo
-import dataInfo
+import const_info
+import data_info
 
 '''
 ' 字符串校验异常类
@@ -43,25 +43,25 @@ def genRootKeyStr():
     configdata = {}
     file = None
     try:
-        file = open(configfilepath, constInfo.FILE_R)
+        file = open(configfilepath, const_info.FILE_R)
         parser.readfp(file)
         for section in parser.sections():
             for (key, value) in parser.items(section):
                 configdata[key] = value
-        rootkey = configdata.get(constInfo.NAGIOS_CONTANT3)
+        rootkey = configdata.get(const_info.NAGIOS_CONTANT3)
 
     except IOError, err:
-        raise FileExcept(dataInfo.OPEN_FILE_ERROR + '\n' + str(err))
+        raise FileExcept(data_info.OPEN_FILE_ERROR + '\n' + str(err))
     except FileExcept:
         raise
     except Exception, err:
-        raise FileExcept(dataInfo.INITIAL_FILE + '\n' + str(err))
+        raise FileExcept(data_info.INITIAL_FILE + '\n' + str(err))
     finally:
         if file is not None:
             file.close()
 
     if rootkey is not None:
-        key = dataInfo.CONSTANT1 + rootkey + constInfo.CONSTANT2
+        key = data_info.CONSTANT1 + rootkey + const_info.CONSTANT2
         return key
     else:
         return ""
@@ -78,17 +78,17 @@ def writeKey(pkey):
     file = None
     try:
         if pkey == "":
-            pkey = constInfo.DATA_CONS
+            pkey = const_info.DATA_CONS
         kfilepath = '../../etc' + os.path.sep \
                     + 'XFUSION_server' + os.path.sep \
                     + 'configInfo.cfg'
-        file = open(kfilepath, constInfo.FILE_W)
+        file = open(kfilepath, const_info.FILE_W)
         file.write(pkey)
     except IOError, err:
-        raise FileExcept(dataInfo.WRITE_FILE_ERROR
+        raise FileExcept(data_info.WRITE_FILE_ERROR
                          + str(err))
     except Exception, err:
-        raise FileExcept(dataInfo.WRITE_FILE_UNKNOWN + str(err))
+        raise FileExcept(data_info.WRITE_FILE_UNKNOWN + str(err))
     finally:
         if file is not None:
             file.close()
@@ -176,7 +176,7 @@ def checkKeyInfo(key):
 def setKey():
     if (len(sys.argv) == 2 and (
             'setKey' == sys.argv[1] or 'setkey' == sys.argv[1])):
-        pkey = getpass.getpass(dataInfo.INPUT_KEY)
+        pkey = getpass.getpass(data_info.INPUT_KEY)
 
         rootkey = genRootKeyStr()
         try:
@@ -186,11 +186,11 @@ def setKey():
                 print encryptStr
                 return
             else:
-                print dataInfo.MSG_KEYWORD1
-                print dataInfo.MSG_KEYWORD2
+                print data_info.MSG_KEYWORD1
+                print data_info.MSG_KEYWORD2
         except CheckExcept:
-            print dataInfo.MSG_KEYWORD1
-            print dataInfo.MSG_KEYWORD2
+            print data_info.MSG_KEYWORD1
+            print data_info.MSG_KEYWORD2
 
 
 setKey()

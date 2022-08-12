@@ -1,10 +1,4 @@
 # coding=utf-8
-
-
-############## PLUGIN VERSION ###########################
-
-VERSTION_STR = "XFUSION PLUGIN V1.1.0"
-################################################
 '''
 Created on 2018-1-18
 
@@ -30,6 +24,11 @@ from xml.dom import minidom
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp.proto.rfc1902 import OctetString, IpAddress
 from pysnmp.proto.rfc1902 import Integer
+
+############## PLUGIN VERSION ###########################
+
+VERSTION_STR = "XFUSION PLUGIN V1.1.1"
+################################################
 
 DEBUG = False
 
@@ -94,6 +93,7 @@ HOST_CFG_KEY_IP = 'ipaddress'
 HOST_CFG_KEY_NAME = 'name'
 HOST_CFG_KEY_USER = 'user'
 HOST_CFG_KEY_PASS = 'pass'
+HOST_CFG_KEY_PRIVPASS = 'privpass'
 HOST_CFG_KEY_AUTHPROTOCOL = 'authprotocol'
 HOST_CFG_KEY_PRIVPROTOCOL = 'privprotocol'
 HOST_CFG_KEY_COMMUNITY = 'community'
@@ -350,7 +350,7 @@ class commonFun:
         matcher = re.match(
             "(2[0-4]\d|25[0-5]|[01]?\d\d?\.)(2[0-4]\d|25[0-5]|[01]?\d\d?\.)("
             "2[0-4]\d|25[0-5]|[01]?\d\d?\.)\*", ipAddstr)
-        if not matcher is None:
+        if matcher is not None:
             ipStr = matcher.group(1) + matcher.group(2) + matcher.group(3)
             for i in range(255):
                 ipList.append(ipStr + str(i))
@@ -558,7 +558,7 @@ class ConfigHandler:
                                 .childNodes[0].nodeValue.strip())
                         parmDic[CFG_NODE_KEY_CPWD] = \
                             self.dencrypt(str(
-                                node.getElementsByTagName(HOST_CFG_KEY_PASS)[0]
+                                node.getElementsByTagName(HOST_CFG_KEY_PRIVPASS)[0]
                                     .childNodes[0].nodeValue.strip()))
                         parmDic[CFG_NODE_KEY_CSNMPVERSION] = \
                             str(node.getElementsByTagName(
@@ -665,7 +665,7 @@ class ConfigHandler:
                     else:
                         privProtocol = usmDESPrivProtocol
                     useData = cmdgen.UsmUserData(hostdic[CFG_NODE_KEY_CUSER],
-                                                 hostdic[CFG_NODE_KEY_CPWD],
+                                                 hostdic[CFG_NODE_KEY_TPWD],
                                                  hostdic[CFG_NODE_KEY_CPWD],
                                                  authProtocol,
                                                  privProtocol)
@@ -865,7 +865,7 @@ class ConfigHandler:
             print "need snmp user"
             exit()
         useData = cmdgen.UsmUserData(self.__parm[CFG_NODE_KEY_CUSER],
-                                     pwd,
+                                     self.__parm[CFG_NODE_KEY_TPWD],
                                      pwd,
                                      authProtocol,
                                      privProtocol)
@@ -980,7 +980,8 @@ class ConfigHandler:
         host.setIpAddress(ip)
         host.setPort(dic[CFG_NODE_KEY_PPORT])
         host.setUserName(dic[CFG_NODE_KEY_CUSER])
-        host.setPassword(dic[CFG_NODE_KEY_CPWD])
+        host.setPassword(dic[CFG_NODE_KEY_TPWD])
+        host.setPrivPassword(dic[CFG_NODE_KEY_CPWD])
         host.setAuthProtocol(dic[CFG_NODE_KEY_CAUTH])
         host.setEncryptionProtocol(dic[CFG_NODE_KEY_CPRIV])
         host.setCollectVersion(dic[CFG_NODE_KEY_CSNMPVERSION])
@@ -1039,7 +1040,7 @@ class ConfigHandler:
         community = self.__parm[CFG_NODE_KEY_CCNMTY]
         if self.__parm[CFG_NODE_KEY_CSNMPVERSION].upper() == "V3":
             userDate = cmdgen.UsmUserData(self.__parm[CFG_NODE_KEY_CUSER],
-                                          pwd,
+                                          self.__parm[CFG_NODE_KEY_TPWD],
                                           pwd,
                                           authProtocol,
                                           privProtocol)
@@ -1101,7 +1102,7 @@ class ConfigHandler:
                 else:
                     privProtocol = usmDESPrivProtocol
                 useData = cmdgen.UsmUserData(confdic[CFG_NODE_KEY_CUSER],
-                                             confdic[CFG_NODE_KEY_CPWD],
+                                             confdic[CFG_NODE_KEY_TPWD],
                                              confdic[CFG_NODE_KEY_CPWD],
                                              authProtocol,
                                              privProtocol)
@@ -1186,7 +1187,7 @@ class ConfigHandler:
                           "getInfoWithEncrypt.py", ipaddress,
                           hostdic[CFG_NODE_KEY_CUSER],
                           hostdic[CFG_NODE_KEY_CAUTH],
-                          self.encrypt(hostdic[CFG_NODE_KEY_CPWD]),
+                          self.encrypt(hostdic[CFG_NODE_KEY_TPWD]),
                           hostdic[CFG_NODE_KEY_CPRIV],
                           self.encrypt(hostdic[CFG_NODE_KEY_CPWD]),
                           objName, hostdic[CFG_NODE_KEY_DEVTYPE],
@@ -1388,9 +1389,14 @@ class ConfigHandler:
                     xcollect.appendChild(xuser)
                     xpass = dom.createElement('pass')
                     xpasst = dom.createTextNode(
-                        self.encrypt(str(_hostParmdic[CFG_NODE_KEY_CPWD])))
+                        self.encrypt(str(_hostParmdic[CFG_NODE_KEY_TPWD])))
                     xpass.appendChild(xpasst)
                     xcollect.appendChild(xpass)
+                    xprivpass = dom.createElement('privpass')
+                    xprivpasst = dom.createTextNode(
+                        self.encrypt(str(_hostParmdic[CFG_NODE_KEY_CPWD])))
+                    xprivpass.appendChild(xprivpasst)
+                    xcollect.appendChild(xprivpass)
                     xauthprotocol = dom.createElement('authprotocol')
                     xauthprotocolt = dom.createTextNode(
                         _hostParmdic[CFG_NODE_KEY_CAUTH])
@@ -1424,6 +1430,11 @@ class ConfigHandler:
                         self.encrypt(str(_hostParmdic[CFG_NODE_KEY_TPWD])))
                     xtrappass.appendChild(xtrappasst)
                     xalarm.appendChild(xtrappass)
+                    xtrapprivpass = dom.createElement('privpass')
+                    xtrapprivpasst = dom.createTextNode(
+                        self.encrypt(str(_hostParmdic[CFG_NODE_KEY_CPWD])))
+                    xtrapprivpass.appendChild(xtrapprivpasst)
+                    xalarm.appendChild(xtrapprivpass)
                     xtrapauthprotocol = dom.createElement('authprotocol')
                     xtrapauthprotocolt = dom.createTextNode(
                         _hostParmdic[CFG_NODE_KEY_TAUTH])

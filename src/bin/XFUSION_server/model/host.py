@@ -12,7 +12,8 @@ class Host:
         self._collectVersion = ""  # SNMP采集版本
         self._port = 161  # SNMP监听端口
         self._userName = ""  # SNMP用户名
-        self._password = ""  # SNMP密码
+        self._password = ""  # 用户名密码
+        self._privPassword = ""  # SNMPV3加密密码
         self._authProtocol = "SHA"  # 认证协议
         self._encryptionProtocol = "MD5"  # 加密协议
         self._collectVersion = ""  # SNMP采集团体字;
@@ -69,6 +70,12 @@ class Host:
 
     def getPassword(self):
         return self._password
+
+    def setPrivPassword(self, privPassword):
+        self._privPassword = privPassword
+
+    def getPrivPassword(self):
+        return self._privPassword
 
     def setAuthProtocol(self, authProtocol):
         self._authProtocol = authProtocol
