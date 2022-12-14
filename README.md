@@ -31,7 +31,7 @@ IV.Software Requirements
 V. Supported Device
     
     Blade Server:        E9000
-    Rack Server:         RH2288H V2,RH1288 V3,RH2288 V3,RH2288H V3,RH5885 V3,RH8100 V3,1288H V5,2288H V5,2488 V5,5885H V5,2488H V6    
+    Rack Server:         RH2288H V2,RH1288 V3,RH2288 V3,RH2288H V3,RH5885 V3,RH8100 V3,1288H V5,2288H V5,2488 V5,5885H V5,2488H V6,5885H V6    
     High-density Server: XH321 V3,XH620 V3,XH622 V3,XH628 V3
     
 VI. Additional Resources
