@@ -64,7 +64,7 @@ def initPlugin():
 def main(argv=None):
     if not initPlugin():
         return -1
-    Logger.getInstance().error('========= %s =======' % VERSTION_STR)
+    Logger.getInstance().info('========= %s =======' % VERSTION_STR)
     if len(argv) < 2:
         Logger.getInstance().error(
             "main error: param length should not be zero.")
@@ -81,16 +81,12 @@ def main(argv=None):
 
         elif "-a" == argv[1]:
             if not Check.checkTotalModeParam(argv[2:]):
-                Logger.getInstance().error(
-                    "main error: param is invalid, param=%s." % sys.argv[1])
                 return -1
 
             service = CollectService(COLLECT_MODE_CMD_TOTAL, argv[2:])
 
         elif "-f" == argv[1]:
             if not Check.checkFileModeParam(argv[2:]):
-                Logger.getInstance().error(
-                    "main error: param is invalid, param=%s." % sys.argv[1])
                 return -1
 
             service = CollectService(COLLECT_MODE_CMD_FILE, argv[2:])

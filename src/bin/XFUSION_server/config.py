@@ -27,7 +27,7 @@ from pysnmp.proto.rfc1902 import Integer
 
 ############## PLUGIN VERSION ###########################
 
-VERSTION_STR = "XFUSION PLUGIN V1.1.1"
+VERSTION_STR = "XFUSION PLUGIN V1.1.2"
 ################################################
 
 DEBUG = False
@@ -49,12 +49,14 @@ CFG_NODE_KEY_PPORT = "port"
 CFG_NODE_KEY_CSNMPVERSION = "CSnmp"
 CFG_NODE_KEY_CUSER = "CUser"
 CFG_NODE_KEY_CPWD = "CPass"
+CFG_NODE_KEY_CPRIV_PWD = "CPrivPass"
 CFG_NODE_KEY_CAUTH = "CAuth"
 CFG_NODE_KEY_CPRIV = "CPriv"
 CFG_NODE_KEY_CCNMTY = "Ccommunity"
 CFG_NODE_KEY_TSNMPVERSION = "TSnmp"
 CFG_NODE_KEY_TUSER = "TUser"
 CFG_NODE_KEY_TPWD = "TPass"
+CFG_NODE_KEY_TPRIV_PWD = "TPrivPass"
 CFG_NODE_KEY_TAUTH = "TAuth"
 CFG_NODE_KEY_TPRIV = "TPriv"
 CFG_NODE_KEY_TCNMTY = "Tcommunity"
@@ -121,6 +123,7 @@ SERVER_TRAP_SETTING_USER_SMM_KEY = "server_trap_setting_user_smm"
 SERVER_TRAP_SETTING_VERSION_SMM_KEY = "server_trap_setting_version_smm"
 SERVER_TRAP_SETTING_TRAPMODE_SMM_KEY = "server_trap_setting_format_smm"
 SERVER_TRAP_SETTING_COMMUNITY_SMM_KEY = "server_trap_setting_community_smm"
+SERVER_TRAP_SETTING_TRAP_BOB_ENABLE_BMC_KEY = 'server_trap_setting_trap_bob_enable_bmc'
 
 
 # --------------------------end cfg for oid ------------------------
@@ -180,6 +183,10 @@ def main():
                          help="Snmp passwd for collecting infomation celloct "
                               + "", default=None
                          )
+    optParser.add_option("-e", "--CPrivPass", dest=CFG_NODE_KEY_CPRIV_PWD,
+                         help="Snmp privPasswd for collecting infomation celloct "
+                              + "", default=None
+                         )
     optParser.add_option("-x", "--CAuth", dest=CFG_NODE_KEY_CAUTH,
                          help="authprotocol of snmp to collect infomation; options:MD5|SHA"
                               + "", default="SHA"
@@ -201,6 +208,9 @@ def main():
                          )
     optParser.add_option("-A", "--TPass", dest=CFG_NODE_KEY_TPWD,
                          help="  Snmp passwd to get trap " + "", default=None
+                         )
+    optParser.add_option("-E", "--TPrivPass", dest=CFG_NODE_KEY_TPRIV_PWD,
+                         help="Snmp privPasswd to get trap " + "", default=None
                          )
     optParser.add_option("-X", "--TAuth", dest=CFG_NODE_KEY_TAUTH,
                          help="authprotocol of snmp to get trap ;options:MD5|SHA"
@@ -231,7 +241,7 @@ def main():
             print "when use SNMP v3 user mush be set "
             return
         if options.CPass is None and options.CSnmp.lower() == 'v3':
-            print "when use SNMP v3 user mush be set "
+            print "when use SNMP v3 password mush be set "
             return
         if options.Ccommunity is None and options.CSnmp.lower() in ['v2',
                                                                     'v1']:
@@ -302,7 +312,9 @@ def parseParm(options, args):
                       CFG_NODE_KEY_TPWD: CFG_NODE_KEY_CPWD,
                       CFG_NODE_KEY_TAUTH: CFG_NODE_KEY_CAUTH,
                       CFG_NODE_KEY_TPRIV: CFG_NODE_KEY_CPRIV,
-                      CFG_NODE_KEY_TCNMTY: CFG_NODE_KEY_CCNMTY}
+                      CFG_NODE_KEY_TCNMTY: CFG_NODE_KEY_CCNMTY,
+                      CFG_NODE_KEY_CPRIV_PWD: CFG_NODE_KEY_CPWD,
+                      CFG_NODE_KEY_TPRIV_PWD: CFG_NODE_KEY_TPWD}
     parm_list = {
         "fun": args[0],
         OPTION_CMD_LIST[0]: options.ip,
@@ -312,12 +324,14 @@ def parseParm(options, args):
         OPTION_CMD_LIST[4]: options.CSnmp,
         OPTION_CMD_LIST[5]: options.CUser,
         OPTION_CMD_LIST[6]: options.CPass,
+        CFG_NODE_KEY_CPRIV_PWD: options.CPrivPass,
         OPTION_CMD_LIST[7]: options.CAuth,
         OPTION_CMD_LIST[8]: options.CPriv,
         OPTION_CMD_LIST[9]: options.Ccommunity,
         OPTION_CMD_LIST[10]: options.TSnmp,
         OPTION_CMD_LIST[11]: options.TUser,
         OPTION_CMD_LIST[12]: options.TPass,
+        CFG_NODE_KEY_TPRIV_PWD: options.TPrivPass,
         OPTION_CMD_LIST[13]: options.TAuth,
         OPTION_CMD_LIST[14]: options.TPriv,
         OPTION_CMD_LIST[15]: options.Tcommunity,
@@ -527,6 +541,10 @@ class ConfigHandler:
                             self.dencrypt(str(
                                 node.getElementsByTagName(HOST_CFG_KEY_PASS)[0]
                                     .childNodes[0].nodeValue.strip()))
+                        parmDic[CFG_NODE_KEY_TPRIV_PWD] = \
+                            self.dencrypt(str(
+                                node.getElementsByTagName(HOST_CFG_KEY_PRIVPASS)[0]
+                                    .childNodes[0].nodeValue.strip()))
                         parmDic[CFG_NODE_KEY_TSNMPVERSION] = \
                             str(node.getElementsByTagName(
                                 HOST_CFG_KEY_TRAPSNMPVERSION)[0]
@@ -557,6 +575,10 @@ class ConfigHandler:
                             str(node.getElementsByTagName(HOST_CFG_KEY_USER)[0]
                                 .childNodes[0].nodeValue.strip())
                         parmDic[CFG_NODE_KEY_CPWD] = \
+                            self.dencrypt(str(
+                                node.getElementsByTagName(HOST_CFG_KEY_PASS)[0]
+                                    .childNodes[0].nodeValue.strip()))
+                        parmDic[CFG_NODE_KEY_CPRIV_PWD] = \
                             self.dencrypt(str(
                                 node.getElementsByTagName(HOST_CFG_KEY_PRIVPASS)[0]
                                     .childNodes[0].nodeValue.strip()))
@@ -665,8 +687,8 @@ class ConfigHandler:
                     else:
                         privProtocol = usmDESPrivProtocol
                     useData = cmdgen.UsmUserData(hostdic[CFG_NODE_KEY_CUSER],
-                                                 hostdic[CFG_NODE_KEY_TPWD],
                                                  hostdic[CFG_NODE_KEY_CPWD],
+                                                 hostdic[CFG_NODE_KEY_CPRIV_PWD],
                                                  authProtocol,
                                                  privProtocol)
 
@@ -752,6 +774,7 @@ class ConfigHandler:
                         portsetted = Integer(self.__trapPort)
                         enableoid = Integer(2)
                         enableAll = Integer(2)
+                        disableBob = Integer(1)
                         # eventCodeMode
                         trapmode = Integer(1)
                         if 'V3' == hostdic[CFG_NODE_KEY_CSNMPVERSION].upper():
@@ -784,7 +807,10 @@ class ConfigHandler:
                                      trapuser),
                                     (oidDic[
                                          SERVER_TRAP_SETTING_TRAPENABLE_BMC_KEY],
-                                     enableAll))
+                                     enableAll),
+                                    (oidDic[
+                                        SERVER_TRAP_SETTING_TRAP_BOB_ENABLE_BMC_KEY],
+                                     disableBob))
                         else:
                             print "server:%s trap comunity will be set " % ipaddress
                             if 'V2' == hostdic[CFG_NODE_KEY_CSNMPVERSION].upper():
@@ -819,7 +845,10 @@ class ConfigHandler:
                                      trapComunity),
                                     (oidDic[
                                          SERVER_TRAP_SETTING_TRAPENABLE_BMC_KEY],
-                                     enableAll))
+                                     enableAll),
+                                    (oidDic[
+                                        SERVER_TRAP_SETTING_TRAP_BOB_ENABLE_BMC_KEY],
+                                     disableBob))
                             if errorIndication is None \
                                     and errorIndex == 6 \
                                     and errorStatus == 132:
@@ -865,8 +894,8 @@ class ConfigHandler:
             print "need snmp user"
             exit()
         useData = cmdgen.UsmUserData(self.__parm[CFG_NODE_KEY_CUSER],
-                                     self.__parm[CFG_NODE_KEY_TPWD],
                                      pwd,
+                                     self.__parm[CFG_NODE_KEY_CPRIV_PWD],
                                      authProtocol,
                                      privProtocol)
         serverlist = []
@@ -880,13 +909,15 @@ class ConfigHandler:
                     CFG_NODE_KEY_IP]
                 exit()
             serverlist = _iPstrlist
-
         for eachServer in serverlist:
-            temDic = {}
-            temDic.update(self.__parm)
-            vendorId = self.__getVendorId(eachServer, temDic)
-            temDic[CFG_NODE_KEY_VENDORID] = vendorId
-            self._clearTrapIP(eachServer, useData, temDic)
+            try:
+                temDic = {}
+                temDic.update(self.__parm)
+                vendorId = self.__getVendorId(eachServer, temDic)
+                temDic[CFG_NODE_KEY_VENDORID] = vendorId
+                self._clearTrapIP(eachServer, useData, temDic)
+            except Exception, err:
+                print "reset server error: %s" % err
         exit()
 
     def _clearTrapIP(self, ipAddr, useData, hostDic):
@@ -980,28 +1011,29 @@ class ConfigHandler:
         host.setIpAddress(ip)
         host.setPort(dic[CFG_NODE_KEY_PPORT])
         host.setUserName(dic[CFG_NODE_KEY_CUSER])
-        host.setPassword(dic[CFG_NODE_KEY_TPWD])
-        host.setPrivPassword(dic[CFG_NODE_KEY_CPWD])
+        host.setPassword(dic[CFG_NODE_KEY_CPWD])
+        host.setPrivPassword(dic[CFG_NODE_KEY_CPRIV_PWD])
         host.setAuthProtocol(dic[CFG_NODE_KEY_CAUTH])
         host.setEncryptionProtocol(dic[CFG_NODE_KEY_CPRIV])
         host.setCollectVersion(dic[CFG_NODE_KEY_CSNMPVERSION])
         host.setCollectCommunity(dic[CFG_NODE_KEY_CCNMTY])
-        channel = Channel(host)
-        oid = "1.3.6.1.2.1.1.2.0"
-        result = channel.getCmd(oid)
-        if result.getCode() != NAGIOS_ERROR_SUCCESS:
-            print("get vendor id fail.")
-            sys.exit(1)
-        vendorIdStr = result.getData()[oid]
-        vendorId = None
-        if vendorIdStr.find(".58132.") != -1:
-            vendorId = "2"
-        elif vendorIdStr.find(".2011.") != -1:
-            vendorId = "1"
-        else:
-            print("vendor id is not supported.")
-            sys.exit(1)
-        return vendorId
+        try:
+            channel = Channel(host)
+            oid = "1.3.6.1.2.1.1.2.0"
+            result = channel.getCmd(oid)
+            if result.getCode() != NAGIOS_ERROR_SUCCESS:
+                raise Exception("get vendor id fail. ")
+            vendorIdStr = result.getData()[oid]
+            vendorId = None
+            if vendorIdStr.find(".58132.") != -1:
+                vendorId = "2"
+            elif vendorIdStr.find(".2011.") != -1:
+                vendorId = "1"
+            else:
+                raise Exception("vendor id is not supported. ")
+            return vendorId
+        except Exception, err:
+            raise err
 
     def _getServerType(self, IpStr, usedata, hostDic):
         oidDic = self.__OidDic
@@ -1040,8 +1072,8 @@ class ConfigHandler:
         community = self.__parm[CFG_NODE_KEY_CCNMTY]
         if self.__parm[CFG_NODE_KEY_CSNMPVERSION].upper() == "V3":
             userDate = cmdgen.UsmUserData(self.__parm[CFG_NODE_KEY_CUSER],
-                                          self.__parm[CFG_NODE_KEY_TPWD],
                                           pwd,
+                                          self.__parm[CFG_NODE_KEY_CPRIV_PWD],
                                           authProtocol,
                                           privProtocol)
         else:
@@ -1102,8 +1134,8 @@ class ConfigHandler:
                 else:
                     privProtocol = usmDESPrivProtocol
                 useData = cmdgen.UsmUserData(confdic[CFG_NODE_KEY_CUSER],
-                                             confdic[CFG_NODE_KEY_TPWD],
                                              confdic[CFG_NODE_KEY_CPWD],
+                                             confdic[CFG_NODE_KEY_CPRIV_PWD],
                                              authProtocol,
                                              privProtocol)
                 ret = self._clearTrapIP(ipAddr, useData, confdic)
@@ -1187,9 +1219,9 @@ class ConfigHandler:
                           "getInfoWithEncrypt.py", ipaddress,
                           hostdic[CFG_NODE_KEY_CUSER],
                           hostdic[CFG_NODE_KEY_CAUTH],
-                          self.encrypt(hostdic[CFG_NODE_KEY_TPWD]),
-                          hostdic[CFG_NODE_KEY_CPRIV],
                           self.encrypt(hostdic[CFG_NODE_KEY_CPWD]),
+                          hostdic[CFG_NODE_KEY_CPRIV],
+                          self.encrypt(hostdic[CFG_NODE_KEY_CPRIV_PWD]),
                           objName, hostdic[CFG_NODE_KEY_DEVTYPE],
                           hostdic[CFG_NODE_KEY_PPORT],
                           hostdic[CFG_NODE_KEY_VENDORID])
@@ -1330,7 +1362,7 @@ class ConfigHandler:
     def __getNagiosPath(self):
         return self._nagiosHomeDir
 
-    # creat hua:wei_host.xml:
+    # creat XFUSION_hosts.xml:
     def __creathostxml(self):
         _etcPath = self.__getCfgPath()
         commands.getoutput(
@@ -1389,12 +1421,12 @@ class ConfigHandler:
                     xcollect.appendChild(xuser)
                     xpass = dom.createElement('pass')
                     xpasst = dom.createTextNode(
-                        self.encrypt(str(_hostParmdic[CFG_NODE_KEY_TPWD])))
+                        self.encrypt(str(_hostParmdic[CFG_NODE_KEY_CPWD])))
                     xpass.appendChild(xpasst)
                     xcollect.appendChild(xpass)
                     xprivpass = dom.createElement('privpass')
                     xprivpasst = dom.createTextNode(
-                        self.encrypt(str(_hostParmdic[CFG_NODE_KEY_CPWD])))
+                        self.encrypt(str(_hostParmdic[CFG_NODE_KEY_CPRIV_PWD])))
                     xprivpass.appendChild(xprivpasst)
                     xcollect.appendChild(xprivpass)
                     xauthprotocol = dom.createElement('authprotocol')
@@ -1432,7 +1464,7 @@ class ConfigHandler:
                     xalarm.appendChild(xtrappass)
                     xtrapprivpass = dom.createElement('privpass')
                     xtrapprivpasst = dom.createTextNode(
-                        self.encrypt(str(_hostParmdic[CFG_NODE_KEY_CPWD])))
+                        self.encrypt(str(_hostParmdic[CFG_NODE_KEY_TPRIV_PWD])))
                     xtrapprivpass.appendChild(xtrapprivpasst)
                     xalarm.appendChild(xtrapprivpass)
                     xtrapauthprotocol = dom.createElement('authprotocol')

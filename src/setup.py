@@ -838,7 +838,7 @@ def VerifyPythonVersion():
 def trapdcheck():
     PythonExcutePath = VerifyPythonVersion()
     trapdcheck = \
-        '''#/bin/bash
+        '''#!/bin/bash
 
 trapdNum=NULL
 function getTrapdNum()
@@ -901,7 +901,6 @@ function trapdcheck()
 }
 source /etc/profile
 export PATH="%s:$PATH"
-export PYTHONPATH=''
 trapdcheck
 ''' % PythonExcutePath
     fileMrg.createFile(targetPath.CURR_PATH + '/libexec/XFUSION_server',
@@ -942,6 +941,46 @@ def encrypt(str):
 
 def insertSerCfg():
     pass
+
+
+def addEventHandlerToprofile():
+    FilePath = "/etc/profile"
+    strforconfig = "export PYTHONPATH=$PYTHONPATH:%s" % (targetPath().nagios_libexec() + os.path.sep +
+                                                         "XFUSION_server" + os.path.sep + "eventhandler")
+    file = None
+    delEventHandlerToprofile()
+    try:
+        file = open(FilePath, "r+")
+        file.seek(0, 2)
+        file.writelines(strforconfig + "\n")
+    except Exception, err:
+        print "addEventHandlerToprofile exception info :" + str(err)
+    finally:
+        if file is not None:
+            file.close()
+
+
+def delEventHandlerToprofile():
+    FilePath = "/etc/profile"
+    strforconfig = "export PYTHONPATH="
+    file = None
+    try:
+        file = open(FilePath, "r+")
+        strlist = file.readlines()
+        file.close()
+        # had configed so exit
+        for i in range(len(strlist)):
+            if strforconfig in str(strlist[i]):
+                del strlist[i]
+                break
+        # cofnig   nagios.cfg
+        file = open(FilePath, "w")
+        file.writelines(strlist)
+    except Exception, err:
+        print "delEventHandlerToprofile exception info :" + str(err)
+    finally:
+        if file is not None:
+            file.close()
 
 
 def delNagiosHomeToprofile():
@@ -1003,7 +1042,7 @@ def install():
         "collectNum=`ps -ef | grep collect.py|grep python | grep -v grep | "
         "awk '{print $2}'` && if [ ! -e $collectNum ]; then kill -9 "
         "$collectNum; fi")
-    
+    addEventHandlerToprofile()
     if ("__main__" == __name__) and checkpath():
         if checkCfgTask.checkPathNot(
                 targetPath().nagios_bin() + "/XFUSION_server/trapd.py"):
@@ -1107,7 +1146,8 @@ def uninstall(isRetain):
         isSaveData = True
     else:
         isSaveData = False
-    
+
+    delNagiosHomeToprofile()
     delNagiosHomeToprofile()
     delckmkVersionToprofile()
     

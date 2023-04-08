@@ -34,10 +34,6 @@ from config import VERSTION_STR
 from eventhandler import HandlerFactory
 import eventhandler as const
 
-sys.path.append(os.path.dirname(os.path.dirname(
-    os.path.normpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))))
-                + os.path.sep + 'libexec' + os.path.sep + 'XFUSION_server'
-                + os.path.sep + 'eventhandler')
 
 NAGIOS_DIR_KEY = 'nagios_dir'
 NAGIOS_CMD_FILE_KEY = 'nagios_cmd_file'
@@ -437,8 +433,8 @@ class TrapReceiver(object):
                                                self._configdata.Listenport))
         )
 
-        try:
-            for agentip in self._configdata.Hostdata.keys():
+        for agentip in self._configdata.Hostdata.keys():
+            try:
                 issuccess = self._configdata.Hostdata[agentip][
                     HOST_CFG_KEY_ISSUCCESS]
                 if not issuccess:
@@ -501,10 +497,10 @@ class TrapReceiver(object):
                     trapcommunity = str(self._configdata.Hostdata[agentip][
                                             HOST_CFG_KEY_TRAPCOMMUNITY])
                     config.addV1System(snmpEngine, 'test-agent', trapcommunity)
-        except Exception, err:
-            logger.error("cache userinfor ,error :" + str(err))
-            snmpEngine.transportDispatcher.closeDispatcher()
-            raise
+            except Exception, err:
+                logger.error("AgentIP is %s, cache userinfor ,error : %s" % (agentip, str(err)))
+                # 一个服务器的密码错误不应影响到其他服务器的正常监听
+                continue
 
             # Register SNMP Application at the SNMP engine
         # Run I/O dispatcher which would receive queries and send confirmations
@@ -535,6 +531,7 @@ class TrapReceiver(object):
             handler.handle()
         except Exception, err:
             logger.error("HandlerFactory err :" + str(err))
+            logger.exception(err)
 
 
 class ConfigData(object):

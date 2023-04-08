@@ -50,8 +50,12 @@ class ProcessService:
 
             message = Common.constructMessage(collectResult.getHostName(),
                                               service, status, information)
-            cls._logger.error(
-                "basic process: nagios cmd message is %s" % message)
+            if status == NAGIOS_STATUS_NORMAL:
+                cls._logger.info(
+                    "basic process: nagios cmd message is %s" % message)
+            else:
+                cls._logger.error(
+                    "basic process: nagios cmd message is %s" % message)
             Common.writeCmd(message)
 
             # E9000暂不支持
@@ -127,9 +131,7 @@ class ProcessService:
                     else:
                         value[item[0].replace(node.getOid(), node.getName())] = node.getReplace()[item[1]]
                 if NUMBER_ZERO == len(value):
-                    cls._logger.error(
-                        "process information: the result of %s has not include in %s"
-                        % (node.getOid(), result.getData()))
+                    cls._logger.warning("process information: the result of %s is null." % node.getName())
                     continue
 
                 nodeName.append(node.getName())
@@ -206,14 +208,12 @@ class ProcessService:
                     if not item[0].startswith(node.getOid() + "."):
                         continue
                     if item[1] not in node.getReplace():
-                        value = {item[0].replace(node.getOid(), node.getName()): item[1]}
+                        value[item[0].replace(node.getOid(), node.getName())] = item[1]
                     else:
-                        value = {item[0].replace(node.getOid(), node.getName()): node.getReplace()[item[1]]}
+                        value[item[0].replace(node.getOid(), node.getName())] = node.getReplace()[item[1]]
 
                 if NUMBER_ZERO == len(value):
-                    cls._logger.error(
-                        "process information: the result of %s has not include in %s" % (
-                            node.getOid(), result.getData()))
+                    cls._logger.warning("process information: the result of %s is null." % node.getName())
                     continue
 
                 if NUMBER_ZERO == len(instances):
