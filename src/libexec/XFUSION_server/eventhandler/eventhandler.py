@@ -104,7 +104,7 @@ class HandlerFactory(object):
         if trapdata.isWarning():
             # 告警级别为0被认为是事件, 暂不报告事件(无服务器型号的完整事件定义)
             if trapdata.Status == STATUS_OK_INT:
-                raise UnSupportedException('Event trap. Not handle. ')
+                raise UnSupportedException('The event level is 0 and doesn\'t need to be handled.')
             logger.info('Instance warning handler. ')
             return WarningTrapHandler(trapdata)
         else:
@@ -282,13 +282,12 @@ class FileHandler(object):
                 # 去掉warning 白名单
                 if trapdata.Agentip != agentip:
                     continue
-                file = open(
-                    self._constructFullFilename(trapdata, filename), 'r')
-                fileline = file.readline()
-                statuslst.append(int(fileline.split(CMD_FILE_CONTENT_SEP)[0]))
-                temp += 1
-                info = info + str(temp) + "." + fileline.split(CMD_FILE_CONTENT_SEP)[1] + ';  '
-                file.close()
+                with open(
+                        self._constructFullFilename(trapdata, filename), 'r') as file:
+                    fileline = file.readline()
+                    statuslst.append(int(fileline.split(CMD_FILE_CONTENT_SEP)[0]))
+                    temp += 1
+                    info = info + str(temp) + "." + fileline.split(CMD_FILE_CONTENT_SEP)[1] + ';  '
             if len(statuslst) < 1:
                 return STATUS_OK_INT, STATUS_OK_STR
             statuslst.sort(reverse=True)
@@ -300,9 +299,6 @@ class FileHandler(object):
             raise PluginException(
                 'Unknown error when reading warning file. Cause: \n'
                 + str(err))
-        finally:
-            if file is not None:
-                file.close()
 
     def _constructFullFilename(self, trapdata, filename):
         """

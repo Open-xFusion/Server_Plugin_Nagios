@@ -1,0 +1,1 @@
+{"fileVersion":"1","name":"Plugin_Nagios_Plugin","serviceId":"f37611310c824bd99c11cf37d21a9d8a","description":"","version":"1.0.0","type":"microService","processes":{"Plugin_Nagios_Plugin":{"subscribes":[]}}}

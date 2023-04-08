@@ -8,7 +8,7 @@ I. General Information
 
     Name:     Nagios Plugin for XFUSION Server    
     Category: Monitoring    
-    version : 1.1.1
+    version : 1.1.2
     
 II. Description
 

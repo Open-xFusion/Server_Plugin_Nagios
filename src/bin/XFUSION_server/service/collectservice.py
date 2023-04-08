@@ -146,7 +146,7 @@ class CollectService:
         if "get" == deviceComponent.getMethod():
             return channel.getCmd(*tuple(nodeOids))
         elif "bulk" == deviceComponent.getMethod():
-            return channel.bulkCmd(0, 1, *tuple(nodeOids))
+            return channel.bulkCmd(0, 1, None, *tuple(nodeOids))
         else:
             self._logger.error("service: collect device info failed， the %s "
                                "method of request is invalid."

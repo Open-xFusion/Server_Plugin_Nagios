@@ -1,5 +1,6 @@
 # encoding:utf-8
 
+import logging
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp.entity import config
 from pysnmp.error import PySnmpError
@@ -28,7 +29,12 @@ class Channel:
 
     def __init__(self, host, timeout=10, retries=2):
         self._channel = cmdgen.CommandGenerator()
-
+        if not self._logger._logger.handlers:
+            consolehandler = logging.StreamHandler()
+            consolehandler.setLevel(logging.DEBUG)
+            consolehandler.setFormatter(logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+            self._logger._logger.addHandler(consolehandler)
         try:
             self._target = cmdgen.UdpTransportTarget((host.getIpAddress(),
                                                       int(host.getPort())),
@@ -39,17 +45,23 @@ class Channel:
             self._logger.exception(
                 "channel init: create udp target exception:%s." % e)
 
-        if "v3" == host.getCollectVersion().lower():
-            self._userData = cmdgen.UsmUserData(host.getUserName(),
-                                                host.getPassword(),
-                                                host.getPrivPassword(),
-                                                Authentication.get(host.getAuthProtocol()),
-                                                Encryption.get(host.getEncryptionProtocol()))
+        try:
+            if "v3" == host.getCollectVersion().lower():
+                self._userData = cmdgen.UsmUserData(host.getUserName(),
+                                                    host.getPassword(),
+                                                    host.getPrivPassword(),
+                                                    Authentication.get(host.getAuthProtocol()),
+                                                    Encryption.get(host.getEncryptionProtocol()))
 
-        elif "v1" == host.getCollectVersion().lower() or "v2" == host.getCollectVersion().lower():
-            self._userData = cmdgen.CommunityData(host.getCollectCommunity())
-        else:
-            self._userData = None
+            elif "v1" == host.getCollectVersion().lower() or "v2" == host.getCollectVersion().lower():
+                self._userData = cmdgen.CommunityData(host.getCollectCommunity())
+            else:
+                self._userData = None
+                raise Exception(
+                    "channel init: snmp version is not correct: %s. " % host.getCollectVersion().lower())
+        except Exception, err:
+            raise err
+
 
     @staticmethod
     def filter(name, *oid):
@@ -64,7 +76,14 @@ class Channel:
         result = ChannelResult()
 
         if self._target is None:
-            return result.setResult(NAGIOS_ERROR_INVALID_TARGET, "")
+            result.setResult(NAGIOS_ERROR_INVALID_TARGET, "")
+            return result
+
+        if self._userData is None:
+            self._logger.exception(
+                "get cmd: get oid info error: userdata is None. ")
+            result.setResult(NAGIOS_ERROR_FAILED, "userdata is None. ")
+            return result
 
         errorIndication, errorStatus, errorIndex, varBinds = self._channel.getCmd(
             self._userData,
