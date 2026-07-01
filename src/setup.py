@@ -1026,11 +1026,12 @@ def addNagiosHomeToprofile():
 
 
 def reuseConfigfile():
-    cfgfile = targetPath().nagios_XFUSION_ser_cfg()
-    configBinPath = targetPath().nagios_bin() + "/XFUSION_server/config.py "
-    if os.path.isfile(cfgfile):
-        tmpcmd = "python %s update" % configBinPath
-        os.system(tmpcmd)
+    cfgfile = target_path().nagios_XFUSION_ser_cfg()
+    configBinPath = target_path().nagios_bin() + "/XFUSION_server/config.py "
+    # Always execute config.py update to create config files
+    tmpcmd = "python %s update" % configBinPath
+    os.system(tmpcmd)
+    print ('reuseConfigfile success')
 
 
 def install():
